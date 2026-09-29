@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sales Analytics Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Fraunces:wght@600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{--bg:#eef1f4;--card:#fff;--ink:#14213d;--mut:#5b6678;--line:#d9dee5;--a1:#0f8b8d;--a2:#e9a23b;--a3:#d1495b;--a4:#3d5a80;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1622;--card:#182233;--ink:#e8edf5;--mut:#9aa7bb;--line:#2a374d;--a1:#3cc3c5;--a2:#f0b455;--a3:#ee6c7f;--a4:#7ea1d1}}
+:root[data-theme="dark"]{--bg:#0f1622;--card:#182233;--ink:#e8edf5;--mut:#9aa7bb;--line:#2a374d;--a1:#3cc3c5;--a2:#f0b455;--a3:#ee6c7f;--a4:#7ea1d1}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "IBM Plex Sans",system-ui,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 16px 48px}
+h1{font:600 30px/1.15 Fraunces,Georgia,serif;margin:0 0 4px}
+h2{font-size:16px;margin:0 0 10px;font-weight:600}
+p.sub{color:var(--mut);margin:0 0 18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
+label{display:flex;flex-direction:column;font-size:12px;color:var(--mut);gap:4px;min-width:130px}
+select,input[type=date],input[type=number],input[type=file]{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 8px}
+button{font:inherit;font-weight:500;border:1px solid var(--a1);background:var(--a1);color:#fff;border-radius:6px;padding:8px 14px;cursor:pointer}
+button.alt{background:transparent;color:var(--a1)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--a2);outline-offset:2px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--a1);border-radius:8px;padding:10px 12px}
+.kpi:nth-child(2n){border-left-color:var(--a2)}.kpi:nth-child(3n){border-left-color:var(--a4)}
+.kpi b{display:block;font-size:22px}.kpi span{font-size:12px;color:var(--mut)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px}
+.grid .card{margin:0}
+.cv{position:relative;height:280px}
+.checks{display:flex;flex-wrap:wrap;gap:14px;font-size:14px}.checks label{flex-direction:row;align-items:center;color:var(--ink);min-width:0;gap:6px}
+.hide{display:none!important}
+#msg{color:var(--a3);font-size:13px;min-height:18px;margin-top:8px}
+.ins{margin:0;padding-left:18px;color:var(--mut)}
+</style></head><body><div class="wrap">
+<h1>Sales Analytics Dashboard</h1>
+<p class="sub">Load your sales data, choose what to see, and get charts, customer metrics, a forecast and a PDF report. Your data stays in your browser.</p>
+
+<div class="card"><h2>1. Load data</h2>
+<div class="row"><label>CSV file<input type="file" id="file" accept=".csv,text/csv"></label>
+<button id="sample" class="alt">Use sample data</button></div>
+<div id="msg"></div>
+<p class="sub" style="margin:8px 0 0;font-size:13px">Needs at least a date and a revenue column. Product, category, customer, quantity and order ID columns unlock more reports.</p>
+<div class="row hide" id="map" style="margin-top:12px">
+<label>Date<select id="c_date"></select></label><label>Revenue<select id="c_rev"></select></label>
+<label>Product<select id="c_prod"></select></label><label>Category<select id="c_cat"></select></label>
+<label>Customer<select id="c_cust"></select></label><label>Quantity<select id="c_qty"></select></label><label>Order ID<select id="c_ord"></select></label>
+<button id="apply">Apply mapping</button></div></div>
+
+<div id="app" class="hide">
+<div class="card"><h2>2. Choose options</h2>
+<div class="row">
+<label>View by<select id="gran"><option value="day">Daily</option><option value="week">Weekly</option><option value="month" selected>Monthly</option></select></label>
+<label>Metric<select id="metric"><option value="rev">Revenue</option><option value="ord">Orders</option><option value="units">Units sold</option></select></label>
+<label>From<input type="date" id="from"></label><label>To<input type="date" id="to"></label>
+<label>Top N products<input type="number" id="topn" value="8" min="3" max="20"></label>
+<label>Forecast periods<input type="number" id="hor" value="6" min="1" max="24"></label>
+<label>Forecast method<select id="meth"><option value="holt">Smoothed trend (Holt)</option><option value="lin">Linear trend</option><option value="ma">Moving average</option></select></label></div>
+<div class="checks" style="margin-top:12px"><span style="color:var(--mut)">Show and export:</span>
+<label><input type="checkbox" class="sec" value="s_trend" checked>Sales trend</label>
+<label><input type="checkbox" class="sec" value="s_prod" checked>Products</label>
+<label><input type="checkbox" class="sec" value="s_cat" checked>Categories</label>
+<label><input type="checkbox" class="sec" value="s_cust" checked>Customers</label>
+<label><input type="checkbox" class="sec" value="s_fc" checked>Forecast</label>
+<button id="pdf" style="margin-left:auto">Export PDF report</button></div></div>
+
+<div class="kpis" id="kpis"></div>
+<div class="grid">
+<div class="card" id="s_trend"><h2 id="t_trend">Sales trend</h2><div class="cv"><canvas id="ch_trend"></canvas></div></div>
+<div class="card" id="s_fc"><h2 id="t_fc">Forecast</h2><div class="cv"><canvas id="ch_fc"></canvas></div></div>
+<div class="card" id="s_prod"><h2>Top products</h2><div class="cv"><canvas id="ch_prod"></canvas></div></div>
+<div class="card" id="s_cat"><h2>Category performance</h2><div class="cv"><canvas id="ch_cat"></canvas></div></div>
+<div class="card" id="s_cust"><h2>New vs returning customers</h2><div class="cv"><canvas id="ch_cust"></canvas></div></div>
+<div class="card"><h2>Key takeaways</h2><ul class="ins" id="ins"></ul></div>
+</div></div></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+let raw=[],hdr=[],data=[],charts={},R={};
+const guess={date:/date|time|day/i,rev:/revenue|amount|sales|total|price/i,prod:/product|item|sku|name/i,cat:/categ|dept|type/i,cust:/customer|client|user|buyer/i,qty:/qty|quant|units/i,ord:/order|invoice|txn|transaction/i};
+const mapIds={date:'c_date',rev:'c_rev',prod:'c_prod',cat:'c_cat',cust:'c_cust',qty:'c_qty',ord:'c_ord'};
+const fmt=n=>Math.abs(n)>=1e6?(n/1e6).toFixed(2)+'M':Math.abs(n)>=1e3?(n/1e3).toFixed(1)+'K':(+n).toFixed(0);
+const pad=n=>String(n).padStart(2,'0');
+const ymd=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const say=t=>$('msg').textContent=t;
+
+function loadRows(r){
+  raw=r;hdr=Object.keys(r[0]||{});
+  if(!hdr.length){say('No columns found in that file.');return}
+  for(const k in mapIds){
+    const s=$(mapIds[k]);
+    s.innerHTML=(k==='date'||k==='rev'?'':'<option value="">(none)</option>')+hdr.map(h=>`<option>${h}</option>`).join('');
+    const g=hdr.find(h=>guess[k].test(h));
+    s.value=g||(k==='date'||k==='rev'?hdr[0]:'');
+  }
+  $('map').classList.remove('hide');applyMap();
+}
+function applyMap(){
+  const g=k=>$(mapIds[k]).value;
+  data=[];
+  for(const r of raw){
+    const d=new Date(r[g('date')]);const rev=parseFloat(String(r[g('rev')]).replace(/[^0-9.\-]/g,''));
+    if(isNaN(d)||isNaN(rev))continue;
+    const q=g('qty')?parseFloat(r[g('qty')]):NaN;
+    data.push({d,rev,p:g('prod')?r[g('prod')]:null,c:g('cat')?r[g('cat')]:null,u:g('cust')?r[g('cust')]:null,q:isNaN(q)?1:q,o:g('ord')?r[g('ord')]:null});
+  }
+  if(!data.length){say('No valid rows. Check that the date and revenue columns are mapped correctly.');$('app').classList.add('hide');return}
+  data.sort((a,b)=>a.d-b.d);
+  say(`Loaded ${data.length.toLocaleString()} of ${raw.length.toLocaleString()} rows.`);
+  $('from').value=ymd(data[0].d);$('to').value=ymd(data[data.length-1].d);
+  $('app').classList.remove('hide');render();
+}
+function bkey(d,g){
+  if(g==='month')return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-01';
+  if(g==='week'){const x=new Date(d);x.setDate(x.getDate()-((x.getDay()+6)%7));return ymd(x)}
+  return ymd(d);
+}
+function nextKey(k,g){const d=new Date(k+'T00:00:00');if(g==='month')d.setMonth(d.getMonth()+1);else d.setDate(d.getDate()+(g==='week'?7:1));return ymd(d)}
+const lab=(k,g)=>{const d=new Date(k+'T00:00:00');return g==='month'?d.toLocaleDateString(undefined,{month:'short',year:'2-digit'}):d.toLocaleDateString(undefined,{month:'short',day:'numeric'})};
+
+function forecast(y,h,m){
+  const n=y.length,x=y.map((_,i)=>i);let mx=(n-1)/2,my=y.reduce((a,b)=>a+b,0)/n;
+  let sxx=0,sxy=0;x.forEach((v,i)=>{sxx+=(v-mx)**2;sxy+=(v-mx)*(y[i]-my)});
+  const b=sxx?sxy/sxx:0,a=my-b*mx;
+  const sd=Math.sqrt(y.reduce((s,v,i)=>s+(v-(a+b*i))**2,0)/Math.max(1,n-2));
+  let out=[];
+  if(m==='lin')for(let i=0;i<h;i++)out.push(a+b*(n+i));
+  else if(m==='ma'){const k=Math.min(4,n),avg=y.slice(-k).reduce((s,v)=>s+v,0)/k;for(let i=0;i<h;i++)out.push(avg)}
+  else{let L=y[0],T=n>1?y[1]-y[0]:0;for(let i=1;i<n;i++){const pl=L;L=.5*y[i]+.5*(L+T);T=.3*(L-pl)+.7*T}for(let i=1;i<=h;i++)out.push(L+T*i)}
+  out=out.map(v=>Math.max(0,v));
+  return{out,band:out.map((_,i)=>1.28*sd*Math.sqrt(1+(i+1)/n))};
+}
+function mk(id,cfg){if(charts[id])charts[id].destroy();charts[id]=new Chart($(id),cfg)}
+function render(){
+  if(!data.length)return;
+  Chart.defaults.color=css('--mut');Chart.defaults.borderColor=css('--line');Chart.defaults.font.family='"IBM Plex Sans",sans-serif';
+  const g=$('gran').value,met=$('metric').value,topn=+$('topn').value||8,hor=+$('hor').value||6,meth=$('meth').value;
+  const f=new Date($('from').value+'T00:00:00'),t=new Date($('to').value+'T23:59:59');
+  const first={};data.forEach(r=>{if(r.u!=null&&first[r.u]===undefined)first[r.u]=bkey(r.d,g)});
+  const rows=data.filter(r=>r.d>=f&&r.d<=t);
+  if(!rows.length){say('No rows in that date range.');return}
+  const B={},P={},C={},cs={},oAll=new Set();let rev=0,units=0,rowsOrd=0;
+  rows.forEach(r=>{
+    const k=bkey(r.d,g);const b=B[k]||(B[k]={rev:0,units:0,o:new Set(),n:0,nw:new Set(),rt:new Set()});
+    b.rev+=r.rev;b.units+=r.q;b.n++;if(r.o!=null)b.o.add(r.o);rev+=r.rev;units+=r.q;
+    if(r.o!=null)oAll.add(r.o);else rowsOrd++;
+    if(r.p!=null)P[r.p]=(P[r.p]||0)+r.rev;
+    if(r.c!=null)C[r.c]=(C[r.c]||0)+r.rev;
+    if(r.u!=null){(first[r.u]===k?b.nw:b.rt).add(r.u);cs[r.u]=(cs[r.u]||0)+(r.o!=null?0:1)}
+  });
+  const hasOrd=data.some(r=>r.o!=null);
+  const keys=Object.keys(B).sort();
+  // fill gaps
+  const full=[];for(let k=keys[0];k<=keys[keys.length-1];k=nextKey(k,g))full.push(k);
+  const val=k=>{const b=B[k];if(!b)return 0;return met==='rev'?b.rev:met==='units'?b.units:(hasOrd?b.o.size:b.n)};
+  const y=full.map(val),L=full.map(k=>lab(k,g));
+  const orders=hasOrd?oAll.size:rows.length;
+  const custs=new Set(rows.filter(r=>r.u!=null).map(r=>r.u));
+  const cnt={};rows.forEach(r=>{if(r.u!=null){const id=r.o!=null?r.o:Math.random();(cnt[r.u]||(cnt[r.u]=new Set())).add(id)}});
+  const rep=custs.size?Object.values(cnt).filter(s=>s.size>1).length/custs.size:null;
+  const mn={rev:'Revenue',ord:'Orders',units:'Units'}[met];
+  const gr=y.length>1&&y[y.length-2]?(y[y.length-1]-y[y.length-2])/y[y.length-2]:null;
+  R={g,met,mn,full,y,L,rev,orders,units,custs:custs.size,rep,P,C,hor};
+  const K=[['Revenue',fmt(rev)],['Orders',fmt(orders)],['Avg order value',fmt(rev/orders)],['Units sold',fmt(units)]];
+  if(custs.size)K.push(['Customers',fmt(custs.size)],['Repeat rate',rep==null?'-':(rep*100).toFixed(0)+'%']);
+  if(gr!=null)K.push([`Last ${g} vs prior`,(gr>=0?'+':'')+(gr*100).toFixed(1)+'%']);
+  $('kpis').innerHTML=K.map(([a,b])=>`<div class="kpi"><b>${b}</b><span>${a}</span></div>`).join('');
+  const gl={day:'Daily',week:'Weekly',month:'Monthly'}[g];
+  $('t_trend').textContent=`${gl} ${mn.toLowerCase()}`;
+  mk('ch_trend',{type:y.length>40?'line':'bar',data:{labels:L,datasets:[{label:mn,data:y,backgroundColor:css('--a1'),borderColor:css('--a1'),pointRadius:0,tension:.25}]},options:{maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{maxTicksLimit:10}}}}});
+  const pe=Object.entries(P).sort((a,b)=>b[1]-a[1]).slice(0,topn);R.pe=pe;
+  $('s_prod').classList.toggle('nodata',!pe.length);
+  mk('ch_prod',{type:'bar',data:{labels:pe.map(e=>String(e[0]).slice(0,24)),datasets:[{label:'Revenue',data:pe.map(e=>e[1]),backgroundColor:css('--a4')}]},options:{indexAxis:'y',maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+  const ce=Object.entries(C).sort((a,b)=>b[1]-a[1]).slice(0,8);R.ce=ce;
+  mk('ch_cat',{type:'doughnut',data:{labels:ce.map(e=>e[0]),datasets:[{data:ce.map(e=>e[1]),backgroundColor:[css('--a1'),css('--a2'),css('--a3'),css('--a4'),'#7b9e89','#b08bbb','#c9a66b','#8896a8'],borderColor:css('--card')}]},options:{maintainAspectRatio:false,plugins:{legend:{position:'right'}}}});
+  mk('ch_cust',{type:'bar',data:{labels:L,datasets:[{label:'New',data:full.map(k=>B[k]?B[k].nw.size:0),backgroundColor:css('--a2')},{label:'Returning',data:full.map(k=>B[k]?B[k].rt.size:0),backgroundColor:css('--a1')}]},options:{maintainAspectRatio:false,scales:{x:{stacked:true,ticks:{maxTicksLimit:10}},y:{stacked:true}}}});
+  // forecast
+  let fL=[],fk=full[full.length-1];const H=Math.min(hor,24);
+  for(let i=0;i<H;i++){fk=nextKey(fk,g);fL.push(lab(fk,g))}
+  const F=y.length>=3?forecast(y,H,meth):{out:Array(H).fill(y[y.length-1]||0),band:Array(H).fill(0)};
+  R.F=F;R.fL=fL;
+  const pad0=Array(y.length-1).fill(null),last=y[y.length-1];
+  $('t_fc').textContent=`${mn} forecast, next ${H} ${g}s`;
+  mk('ch_fc',{type:'line',data:{labels:L.concat(fL),datasets:[
+    {label:'Actual',data:y.concat(Array(H).fill(null)),borderColor:css('--a1'),pointRadius:0,tension:.25},
+    {label:'Forecast',data:pad0.concat([last],F.out),borderColor:css('--a2'),borderWidth:3,pointRadius:0},
+    {label:'Upper (80%)',data:pad0.concat([last],F.out.map((v,i)=>v+F.band[i])),borderColor:css('--a3'),borderDash:[4,4],pointRadius:0,borderWidth:1},
+    {label:'Lower (80%)',data:pad0.concat([last],F.out.map((v,i)=>Math.max(0,v-F.band[i]))),borderColor:css('--a3'),borderDash:[4,4],pointRadius:0,borderWidth:1}]},
+    options:{maintainAspectRatio:false,scales:{x:{ticks:{maxTicksLimit:10}}}}});
+  const fs=F.out.reduce((a,b)=>a+b,0);R.fs=fs;
+  const ins=[];
+  if(pe.length)ins.push(`${pe[0][0]} is the top product with ${(pe[0][1]/rev*100).toFixed(1)}% of revenue.`);
+  if(pe.length>=3)ins.push(`The top 3 products bring in ${(pe.slice(0,3).reduce((s,e)=>s+e[1],0)/rev*100).toFixed(0)}% of revenue.`);
+  if(ce.length)ins.push(`${ce[0][0]} is the strongest category (${(ce[0][1]/rev*100).toFixed(0)}% of revenue).`);
+  const bi=y.indexOf(Math.max(...y));ins.push(`Best ${g}: ${L[bi]} with ${fmt(y[bi])} ${mn.toLowerCase()}.`);
+  if(rep!=null)ins.push(`${(rep*100).toFixed(0)}% of customers ordered more than once in this period.`);
+  ins.push(`Forecast total for the next ${H} ${g}s: about ${fmt(fs)} ${mn.toLowerCase()} (${$('meth').selectedOptions[0].text}).`);
+  $('ins').innerHTML=ins.map(s=>`<li>${s}</li>`).join('');
+  R.ins=ins;
+  if(!pe.length)$('s_prod').classList.add('hide');
+  document.querySelectorAll('.sec').forEach(c=>{
+    const nodata=(c.value==='s_prod'&&!pe.length)||(c.value==='s_cat'&&!ce.length)||(c.value==='s_cust'&&!custs.size);
+    c.disabled=nodata;$(c.value).classList.toggle('hide',!c.checked||nodata);
+  });
+}
+function pdf(){
+  const {jsPDF}=window.jspdf,doc=new jsPDF('p','pt','a4'),W=595,M=40;let y=M;
+  const need=h=>{if(y+h>800){doc.addPage();y=M}};
+  const line=(t,s=10,st='normal')=>{doc.setFont('helvetica',st);doc.setFontSize(s);doc.splitTextToSize(t,W-2*M).forEach(l=>{need(s+4);doc.text(l,M,y);y+=s+4})};
+  line('Sales Analytics Report',20,'bold');y+=4;
+  line(`Period: ${$('from').value} to ${$('to').value}   |   View: ${R.g}   |   Metric: ${R.mn}`,10);y+=6;
+  line(`Revenue ${fmt(R.rev)}  |  Orders ${fmt(R.orders)}  |  AOV ${fmt(R.rev/R.orders)}  |  Units ${fmt(R.units)}`+(R.custs?`  |  Customers ${fmt(R.custs)}`:'')+(R.rep!=null?`  |  Repeat ${(R.rep*100).toFixed(0)}%`:''),10,'bold');y+=8;
+  line('Key takeaways',13,'bold');R.ins.forEach(s=>line('- '+s));y+=8;
+  const on=v=>document.querySelector(`.sec[value="${v}"]`).checked&&!document.querySelector(`.sec[value="${v}"]`).disabled;
+  const img=(id,title)=>{
+    const c=$(id),t=document.createElement('canvas');t.width=c.width;t.height=c.height;
+    const x=t.getContext('2d');x.fillStyle=css('--card');x.fillRect(0,0,t.width,t.height);x.drawImage(c,0,0);
+    const w=W-2*M,h=w*c.height/c.width;need(h+30);line(title,13,'bold');doc.addImage(t.toDataURL('image/png'),'PNG',M,y,w,h);y+=h+12;
+  };
+  if(on('s_trend'))img('ch_trend',$('t_trend').textContent);
+  if(on('s_prod')){img('ch_prod','Top products');R.pe.forEach(([n,v],i)=>line(`${i+1}. ${n}: ${fmt(v)} (${(v/R.rev*100).toFixed(1)}%)`));y+=6}
+  if(on('s_cat')){img('ch_cat','Category performance');R.ce.forEach(([n,v])=>line(`${n}: ${fmt(v)} (${(v/R.rev*100).toFixed(1)}%)`));y+=6}
+  if(on('s_cust'))img('ch_cust','New vs returning customers');
+  if(on('s_fc')){img('ch_fc',$('t_fc').textContent);R.fL.forEach((l,i)=>line(`${l}: ${fmt(R.F.out[i])}  (range ${fmt(Math.max(0,R.F.out[i]-R.F.band[i]))} to ${fmt(R.F.out[i]+R.F.band[i])})`))}
+  doc.save('sales-report.pdf');
+}
+function sample(){
+  const P=[['Trail Backpack','Outdoor',89],['Insulated Bottle','Outdoor',28],['Wireless Earbuds','Electronics',120],['Smart Watch','Electronics',210],['Desk Lamp','Home',45],['Ceramic Mug Set','Home',34],['Yoga Mat','Fitness',40],['Running Shoes','Fitness',95],['Notebook Pack','Office',15],['Standing Desk','Office',340]];
+  let s=7;const rnd=()=>(s=(s*16807)%2147483647)/2147483647;const out=[];const start=new Date();start.setDate(start.getDate()-300);
+  for(let i=0;i<300;i++){const d=new Date(start);d.setDate(d.getDate()+i);
+    const n=Math.round(6+i/30+3*Math.sin(i/7*Math.PI*2/1)+rnd()*5+(d.getMonth()>9?6:0));
+    for(let j=0;j<Math.max(2,n);j++){const p=P[Math.floor(rnd()*rnd()*10)],q=1+Math.floor(rnd()*3);
+      out.push({order_date:ymd(d),order_id:'O'+i+'-'+j,customer_id:'C'+Math.floor(rnd()*(80+i*3)),product:p[0],category:p[1],quantity:q,revenue:+(p[2]*q*(0.9+rnd()*.2)).toFixed(2)})}}
+  loadRows(out);
+}
+$('file').onchange=e=>{const f=e.target.files[0];if(!f)return;Papa.parse(f,{header:true,skipEmptyLines:true,complete:r=>r.data.length?loadRows(r.data):say('That file has no rows.'),error:()=>say('Could not read that file. Save it as CSV and try again.')})};
+$('sample').onclick=sample;$('apply').onclick=applyMap;$('pdf').onclick=pdf;
+['gran','metric','from','to','topn','hor','meth'].forEach(i=>$(i).onchange=render);
+document.querySelectorAll('.sec').forEach(c=>c.onchange=render);
+matchMedia('(prefers-color-scheme:dark)').addEventListener('change',render);
+</script></body></html>
