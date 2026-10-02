@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Stockroom India - Inventory Management</title>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+         :root {
+            --bg: #e8edeb;
+            --card: #fbfcfb;
+            --ink: #16262a;
+            --mut: #566a6e;
+            --line: #cfd9d6;
+            --pri: #16414a;
+            --ok: #2b7a5f;
+            --warn: #b26f10;
+            --bad: #b83b3b;
+            --okb: #dcefe6;
+            --warnb: #f8e8c9;
+            --badb: #f6dada;
+            box-sizing: border-box;
+            padding-top: env(safe-area-inset-top, 0px);
+            padding-bottom: env(safe-area-inset-bottom, 0px)
+        }
+        
+        @media (prefers-color-scheme:dark) {
+            :root:not([data-theme="light"]) {
+                --bg: #0f1a1d;
+                --card: #172428;
+                --ink: #e6efee;
+                --mut: #94a9ac;
+                --line: #28393d;
+                --pri: #58b3c4;
+                --ok: #5cc49c;
+                --warn: #e8a84a;
+                --bad: #ef7b7b;
+                --okb: #173b30;
+                --warnb: #3d2f12;
+                --badb: #421d1d
+            }
+        }
+        
+        :root[data-theme="dark"] {
+            --bg: #0f1a1d;
+            --card: #172428;
+            --ink: #e6efee;
+            --mut: #94a9ac;
+            --line: #28393d;
+            --pri: #58b3c4;
+            --ok: #5cc49c;
+            --warn: #e8a84a;
+            --bad: #ef7b7b;
+            --okb: #173b30;
+            --warnb: #3d2f12;
+            --badb: #421d1d
+        }
+        
+        html {
+            scroll-padding-top: env(safe-area-inset-top, 0px)
+        }
+        
+        * {
+            box-sizing: border-box
+        }
+        
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--ink);
+            font: 14px/1.45 "Instrument Sans", system-ui, sans-serif
+        }
+        
+        .wrap {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 16px
+        }
+        
+        header {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px
+        }
+        
+        h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -.01em
+        }
+        
+        h2 {
+            font-size: 16px;
+            margin: 0 0 10px
+        }
+        
+        h3 {
+            margin: 0 0 10px
+        }
+        
+        .scan {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap
+        }
+        
+        input,
+        select,
+        textarea {
+            font: inherit;
+            color: var(--ink);
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 7px 9px;
+            width: 100%
+        }
+        
+        .scan input,
+        .scan select,
+        .bar input,
+        .bar select {
+            width: auto
+        }
+        
+        button {
+            font: inherit;
+            font-weight: 600;
+            border: 1px solid var(--pri);
+            background: var(--pri);
+            color: var(--card);
+            border-radius: 6px;
+            padding: 7px 12px;
+            cursor: pointer
+        }
+        
+        button.alt {
+            background: transparent;
+            color: var(--pri)
+        }
+        
+        button.sm {
+            padding: 3px 8px;
+            font-size: 12px
+        }
+        
+        button.dg {
+            border-color: var(--bad);
+            color: var(--bad);
+            background: transparent
+        }
+        
+        :is(button, input, select, textarea):focus-visible {
+            outline: 3px solid var(--warn);
+            outline-offset: 2px
+        }
+        
+        nav {
+            display: flex;
+            gap: 4px;
+            overflow-x: auto;
+            border-bottom: 2px solid var(--line);
+            margin-bottom: 14px
+        }
+        
+        .tab {
+            background: none;
+            color: var(--mut);
+            border: 0;
+            border-bottom: 3px solid transparent;
+            border-radius: 0;
+            margin-bottom: -2px;
+            padding: 9px 14px;
+            white-space: nowrap
+        }
+        
+        .tab.on {
+            color: var(--pri);
+            border-bottom-color: var(--pri)
+        }
+        
+        .card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 14px
+        }
+        
+        .kpis {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+            margin-bottom: 14px
+        }
+        
+        .kpi {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 10px 12px
+        }
+        
+        .kpi b {
+            display: block;
+            font-size: 24px
+        }
+        
+        .kpi span {
+            color: var(--mut);
+            font-size: 12px
+        }
+        
+        .kpi.bad {
+            border-color: var(--bad)
+        }
+        
+        .kpi.warn {
+            border-color: var(--warn)
+        }
+        
+        .tw {
+            overflow-x: auto
+        }
+        
+        table {
+            border-collapse: collapse;
+            width: 100%
+        }
+        
+        th,
+        td {
+            text-align: left;
+            padding: 7px 8px;
+            border-bottom: 1px solid var(--line);
+            white-space: nowrap
+        }
+        
+        th {
+            font-size: 12px;
+            color: var(--mut);
+            font-weight: 600
+        }
+        
+        td.n,
+        th.n {
+            text-align: right;
+            font-variant-numeric: tabular-nums
+        }
+        
+        .sku {
+            font-family: ui-monospace, Menlo, monospace;
+            font-size: 12.5px
+        }
+        
+        .b {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 99px;
+            font-size: 12px;
+            font-weight: 600
+        }
+        
+        .b.ok {
+            background: var(--okb);
+            color: var(--ok)
+        }
+        
+        .b.low {
+            background: var(--warnb);
+            color: var(--warn)
+        }
+        
+        .b.out {
+            background: var(--badb);
+            color: var(--bad)
+        }
+        
+        .b.x {
+            background: var(--line);
+            color: var(--mut)
+        }
+        
+        .bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+            align-items: center
+        }
+        
+        .bar input[type=search] {
+            flex: 1;
+            min-width: 180px
+        }
+        
+        .two {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 14px
+        }
+        
+        .al {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid var(--line)
+        }
+        
+        .mut {
+            color: var(--mut)
+        }
+        
+        dialog {
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            background: var(--card);
+            color: var(--ink);
+            width: min(440px, 94vw);
+            padding: 18px
+        }
+        
+        dialog::backdrop {
+            background: #0008
+        }
+        
+        dialog label {
+            display: block;
+            font-size: 12px;
+            color: var(--mut);
+            margin-bottom: 10px
+        }
+        
+        dialog .r {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 6px
+        }
+        
+        #toast {
+            position: fixed;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+            background: var(--pri);
+            color: var(--card);
+            padding: 9px 16px;
+            border-radius: 8px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .2s;
+            max-width: 90vw
+        }
+        
+        #toast.on {
+            opacity: 1
+        }
+        
+        #toast.err {
+            background: var(--bad);
+            color: #fff
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <header>
+            <h1>Stockroom India</h1>
+            <div class="scan"><input id="scan" placeholder="Scan barcode or type SKU, press Enter" aria-label="Barcode scan" size="30">
+                <select id="smode" aria-label="Scan action"><option value="sell">Sell 1</option><option value="recv">Receive 1</option><option value="find">Look up</option></select>
+                <select id="sloc" aria-label="Scan location"></select></div>
+        </header>
+        <nav id="tabs"></nav>
+        <main id="main"></main>
+        <dialog id="dlg"></dialog>
+        <div id="toast" role="status"></div>
+    </div>
+    <script>
+        const $ = (s, e = document) => e.querySelector(s),
+            KEY = 'stockroom_in_v1';
+        const esc = s => String(s ? ? '').replace(/[&<>"]/g, c => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;'
+        }[c]));
+        let S, tab = 0,
+            q = '',
+            fs = 'all',
+            mem = null;
+        const tabs = ['Dashboard', 'Inventory', 'Purchase orders', 'Suppliers', 'Settings'];
+
+        function demo() {
+            const A = 'Siliguri Warehouse',
+                B = 'Kolkata Store',
+                it = (sku, bc, name, cat, sup, re, cost, price, a, b, hsn, gst) => ({
+                    sku,
+                    barcode: bc,
+                    name,
+                    cat,
+                    sup,
+                    reorder: re,
+                    cost,
+                    price,
+                    hsn,
+                    gst,
+                    qty: {
+                        [A]: a,
+                        [B]: b
+                    }
+                });
+            return {
+                locs: [A, B],
+                locSt: {
+                    [A]: '19',
+                    [B]: '19'
+                },
+                channels: ['Flipkart', 'Amazon.in', 'Meesho', 'JioMart', 'Offline store'],
+                sup: [{
+                    id: 'S1',
+                    name: 'Kolkata Textile Traders',
+                    gstin: '19AABCK1234A1Z5',
+                    email: 'orders@kolkatatextile.example',
+                    lead: 5
+                }, {
+                    id: 'S2',
+                    name: 'Siliguri Tea & Grocery Wholesale',
+                    gstin: '19AAACS5678B1Z2',
+                    email: 'sales@siliguriwholesale.example',
+                    lead: 3
+                }, {
+                    id: 'S3',
+                    name: 'Delhi Gadgets Pvt Ltd',
+                    gstin: '07AAECD9012C1Z9',
+                    email: 'b2b@delhigadgets.example',
+                    lead: 8
+                }],
+                items: [it('KU-101', '8901101', 'Cotton Kurta', 'Apparel', 'S1', 15, 320, 799, 42, 10, '6105', 5), it('TE-250', '8901102', 'Darjeeling Tea 250g', 'Grocery', 'S2', 30, 140, 285, 120, 35, '0902', 5), it('RC-500', '8901103', 'Basmati Rice 5kg', 'Grocery', 'S2', 20, 380, 560, 60, 18, '1006', 5), it('TF-310', '8901104', 'Steel Tiffin Box', 'Kitchen', 'S1', 10, 210, 449, 0, 0, '7323', 18), it('EB-220', '8901105', 'Wireless Earbuds', 'Electronics', 'S3', 8, 650, 1499, 6, 2, '8518', 18), it('PB-120', '8901106', 'Power Bank 10000mAh', 'Electronics', 'S3', 10, 780, 1299, 25, 9, '8507', 18), it('DP-045', '8901107', 'Handloom Dupatta', 'Apparel', 'S1', 12, 180, 499, 7, 3, '6214', 5), it('NB-500', '8901108', 'Notebook Pack (6)', 'Stationery', 'S1', 30, 90, 199, 0, 18, '4820', 18)],
+                pos: [],
+                log: [{
+                    t: new Date().toLocaleString('en-IN'),
+                    m: 'Demo data loaded'
+                }]
+            }
+        }
+
+        function load() {
+            try {
+                S = JSON.parse(localStorage.getItem(KEY))
+            } catch (e) {
+                S = mem
+            }
+            S = S || demo()
+        }
+
+        function save() {
+            mem = S;
+            try {
+                localStorage.setItem(KEY, JSON.stringify(S))
+            } catch (e) {}
+            render()
+        }
+        addEventListener('storage', e => {
+            if (e.key === KEY) {
+                load();
+                render()
+            }
+        });
+        const tot = i => Object.values(i.qty).reduce((a, b) => a + b, 0),
+            st = i => {
+                const t = tot(i);
+                return t === 0 ? 'out' : t <= i.reorder ? 'low' : 'ok'
+            };
+        const lbl = {
+                ok: 'In stock',
+                low: 'Low stock',
+                out: 'Out of stock'
+            },
+            item = s => S.items.find(i => i.sku === s),
+            supn = id => (S.sup.find(s => s.id === id) || {}).name || '-';
+        const poAmt = p => {
+                let b = 0,
+                    g = 0;
+                p.lines.forEach(l => {
+                    const i = item(l.sku) || {
+                            cost: 0,
+                            gst: 0
+                        },
+                        a = l.qty * i.cost;
+                    b += a;
+                    g += a * i.gst / 100
+                });
+                return {
+                    b,
+                    g
+                }
+            },
+            taxType = p => {
+                const u = S.sup.find(x => x.id === p.sup);
+                return u && u.gstin.slice(0, 2) === S.locSt[p.loc] ? 'CGST + SGST' : 'IGST'
+            };
+        const money = n => new Intl.NumberFormat('en-IN', {
+                style: 'currency',
+                currency: 'INR',
+                maximumFractionDigits: 2
+            }).format(n),
+            log = m => {
+                S.log.unshift({
+                    t: new Date().toLocaleString('en-IN'),
+                    m
+                });
+                S.log = S.log.slice(0, 60)
+            };
+
+        function toast(m, err) {
+            const t = $('#toast');
+            t.textContent = m;
+            t.className = 'on' + (err ? ' err' : '');
+            clearTimeout(toast.h);
+            toast.h = setTimeout(() => t.className = '', 2600)
+        }
+
+        function adjust(sku, loc, d, why) {
+            const i = item(sku),
+                c = i.qty[loc] || 0;
+            if (c + d < 0) return toast(`Only ${c} in ${loc}`, 1), false;
+            i.qty[loc] = c + d;
+            log(`${i.name} (${sku}) ${d>0?'+':''}${d} at ${loc} - ${why}`);
+            if (d < 0 && st(i) !== 'ok') toast(st(i) === 'out' ? `${i.name} is now out of stock` : `${i.name} is low: ${tot(i)} left`, 1);
+            else toast('Stock updated');
+            save();
+            return true
+        }
+        const sell = (sku, loc, n, ch) => adjust(sku, loc, -n, `sold via ${ch}`);
+
+        function form(title, fields, ok, btn = 'Save') {
+            const d = $('#dlg');
+            d.innerHTML = `<form method="dialog"><h3>${title}</h3>${fields.map(f=>`<label>${f.l}${f.o?`<select name="${f.k}">${f.o.map(o=>`<option value="${esc(o[0])}" ${o[0]==f.v?'selected':''}>${esc(o[1])}</option>`).join('')}</select>`:f.a?`<textarea name="${f.k}" rows="4" placeholder="${esc(f.p||'')}" required></textarea>`:`<input name="${f.k}" type="${f.t||'text'}" value="${esc(f.v??'')}" ${f.min!=null?'min="'+f.min+'"':''} ${f.opt?'':'required'}>`}</label>`).join('')}<div class="r"><button value="c" class="alt" formnovalidate>Cancel</button><button value="ok">${btn}</button></div></form>`;
+ d.showModal();d.onclose=()=>{if(d.returnValue==='ok')ok(Object.fromEntries(new FormData($('form',d))))}}
+const LO=()=>S.locs.map(l=>[l,l]),CH=()=>S.channels.map(l=>[l,l]),SU=()=>S.sup.map(s=>[s.id,s.name]);
+const A={
+tab:d=>{tab=+d.i;render()},
+new:()=>itemForm(),edit:d=>itemForm(item(d.sku)),
+adj:d=>form('Adjust stock: '+d.sku,[{l:'Location',k:'l',o:LO()},{l:'Change (use negative to remove)',k:'n',t:'number'},{l:'Reason',k:'r',v:'Cycle count'}],v=>adjust(d.sku,v.l,+v.n,v.r)),
+sell:d=>form('Record sale: '+d.sku,[{l:'Channel',k:'c',o:CH()},{l:'Location',k:'l',o:LO()},{l:'Quantity',k:'n',t:'number',v:1,min:1}],v=>sell(d.sku,v.l,+v.n,v.c),'Record sale'),
+xfer:d=>form('Transfer: '+d.sku,[{l:'From',k:'a',o:LO()},{l:'To',k:'b',o:LO().reverse()},{l:'Quantity',k:'n',t:'number',v:1,min:1}],v=>{if(v.a===v.b)return toast('Pick two different locations',1);if(adjust(d.sku,v.a,-v.n,'transfer out'))adjust(d.sku,v.b,+v.n,'transfer in')},'Transfer'),
+del:d=>form('Delete '+d.sku+'?',[],()=>{S.items=S.items.filter(i=>i.sku!==d.sku);log('Deleted '+d.sku);save()},'Delete'),
+reorder:d=>{const i=item(d.sku),n=Math.max(1,i.reorder*2-tot(i));S.pos.unshift({id:'PO-'+String(S.pos.length+1001),sup:i.sup,loc:S.locs[0],status:'draft',date:new Date().toLocaleDateString('en-IN'),lines:[{sku:i.sku,qty:n}]});log(`Draft PO for ${n} x ${i.name}`);toast('Draft PO created');tab=2;save()},
+newpo:()=>form('New purchase order',[{l:'Supplier',k:'s',o:SU()},{l:'Deliver to',k:'l',o:LO()},{l:'Lines (one per row: SKU,quantity)',k:'t',a:1,p:'BP-001,20\nBT-014,50'}],v=>{const lines=v.t.split('\n').map(r=>r.split(',').map(x=>x.trim())).filter(r=>r[0]).map(r=>({sku:r[0],qty:+r[1]}));
+ const bad=lines.find(l=>!item(l.sku)||!(l.qty>0));if(bad)return toast('Unknown SKU or quantity: '+bad.sku,1);S.pos.unshift({id:'PO-'+(1001+S.pos.length),sup:v.s,loc:v.l,status:'draft',date:new Date().toLocaleDateString('en-IN'),lines});log('Created PO');save()},'Create PO'),
+po:d=>{const p=S.pos.find(x=>x.id===d.id);if(d.s==='received'){p.lines.forEach(l=>{item(l.sku).qty[p.loc]=(item(l.sku).qty[p.loc]||0)+l.qty});log(`Received ${p.id} into ${p.loc}`);toast('Stock received and updated')}p.status=d.s;save()},
+newsup:()=>form('New supplier',[{l:'Name',k:'name'},{l:'GSTIN (15 characters)',k:'gstin'},{l:'Email',k:'email',t:'email'},{l:'Lead time (days)',k:'lead',t:'number',v:7,min:0}],v=>{const g=v.gstin.trim().toUpperCase();if(!/^\d{2}[A-Z0-9]{13}$/.test(g))return toast('GSTIN must be 15 characters, starting with the 2-digit state code',1);S.sup.push({id:'S'+(Date.now()%1e6),name:v.name,gstin:g,email:v.email,lead:+v.lead});save()}),
+addloc:()=>form('New location',[{l:'Name',k:'n'},{l:'GST state code (19 = West Bengal, 07 = Delhi, 27 = Maharashtra)',k:'s',v:'19'}],v=>{if(S.locs.includes(v.n))return toast('Already exists',1);S.locs.push(v.n);S.locSt[v.n]=v.s.trim();S.items.forEach(i=>i.qty[v.n]=0);save()}),
+addch:()=>form('New sales channel',[{l:'Name',k:'n'}],v=>{S.channels.push(v.n);save()}),
+export:()=>{const r=[['sku','barcode','name','category','supplier','reorder_point','cost','mrp','hsn','gst_percent',...S.locs,'total']].concat(S.items.map(i=>[i.sku,i.barcode,i.name,i.cat,supn(i.sup),i.reorder,i.cost,i.price,i.hsn,i.gst,...S.locs.map(l=>i.qty[l]||0),tot(i)]));
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([r.map(x=>x.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n')],{type:'text/csv'}));a.download='inventory.csv';a.click()},
+reset:()=>form('Reset all data to the demo set?',[],()=>{S=demo();save()},'Reset')};
+function itemForm(i){const n=!i;form(n?'Add item':'Edit '+i.sku,[{l:'SKU',k:'sku',v:i?.sku,},{l:'Barcode (optional)',k:'barcode',v:i?.barcode,opt:1},{l:'Name',k:'name',v:i?.name},{l:'Category',k:'cat',v:i?.cat,opt:1},{l:'Supplier',k:'sup',o:SU(),v:i?.sup},{l:'Reorder point (alert at or below)',k:'reorder',t:'number',v:i?.reorder??5,min:0},{l:'Unit cost (₹, excl. GST)',k:'cost',t:'number',v:i?.cost??0,min:0},{l:'MRP (₹, incl. GST)',k:'price',t:'number',v:i?.price??0,min:0},{l:'HSN code',k:'hsn',v:i?.hsn,opt:1},{l:'GST rate',k:'gst',o:[[0,'0%'],[5,'5%'],[18,'18%'],[40,'40%']],v:i?.gst??18},...(n?[{l:'Starting location',k:'loc',o:LO()},{l:'Starting quantity',k:'qty',t:'number',v:0,min:0}]:[])],v=>{
+ const sku=v.sku.trim();if(S.items.some(x=>x!==i&&(x.sku===sku||(v.barcode&&x.barcode===v.barcode))))return toast('SKU or barcode already in use',1);
+ const o={sku,barcode:v.barcode.trim(),name:v.name,cat:v.cat,sup:v.sup,reorder:+v.reorder,cost:+v.cost,price:+v.price,hsn:v.hsn.trim(),gst:+v.gst};
+ if(n){o.qty=Object.fromEntries(S.locs.map(l=>[l,0]));o.qty[v.loc]=+v.qty;S.items.push(o);log('Added '+sku)}else{Object.assign(i,o);log('Edited '+sku)}save()})}
+function dash(){const it=S.items,out=it.filter(i=>st(i)==='out'),low=it.filter(i=>st(i)==='low'),val=it.reduce((s,i)=>s+tot(i)*i.cost,0);
+ const row=i=>`<div class="al"><span><b>${esc(i.name)}</b> <span class="mut sku">${esc(i.sku)}</span><br><span class="mut">${tot(i)} left, reorder at ${i.reorder}</span></span><button class="sm" data-act="reorder" data-sku="${esc(i.sku)}">Reorder</button></div>`;
+ return`<div class="kpis"><div class="kpi"><b>${it.length}</b><span>SKUs</span></div><div class="kpi"><b>${it.reduce((s,i)=>s+tot(i),0).toLocaleString('en-IN')}</b><span>Units on hand</span></div><div class="kpi"><b>${money(val)}</b><span>Stock value (at cost)</span></div><div class="kpi warn"><b>${low.length}</b><span>Low stock</span></div><div class="kpi bad"><b>${out.length}</b><span>Out of stock</span></div></div>
+ <div class="two"><div class="card"><h2>Alerts</h2>${out.concat(low).map(row).join('')||'<p class="mut">Everything is above its reorder point.</p>'}</div>
+ <div class="card"><h2>Recent activity</h2>${S.log.slice(0,12).map(l=>`<div class="al"><span>${esc(l.m)}</span><span class="mut">${esc(l.t)}</span></div>`).join('')}</div></div>`}
+function rows(){const s=q.toLowerCase();return S.items.filter(i=>(fs==='all'||st(i)===fs)&&(!s||[i.sku,i.name,i.barcode,i.cat].some(x=>String(x).toLowerCase().includes(s))))}
+function tbl(){return`<div class="tw"><table><thead><tr><th>SKU</th><th>Item</th><th>Barcode</th>${S.locs.map(l=>`<th class="n">${esc(l)}</th>`).join('')}<th class="n">Total</th><th class="n">Reorder at</th><th>Status</th><th>Actions</th></tr></thead><tbody>${rows().map(i=>{const k=`data-sku="${esc(i.sku)}"`;return`<tr><td class="sku">${esc(i.sku)}</td><td>${esc(i.name)}<br><span class="mut">${esc(i.cat)} | HSN ${esc(i.hsn||'-')} | GST ${i.gst}% | ${esc(supn(i.sup))}</span></td><td class="sku">${esc(i.barcode)}</td>${S.locs.map(l=>`<td class="n">${i.qty[l]||0}</td>`).join('')}<td class="n"><b>${tot(i)}</b></td><td class="n">${i.reorder}</td><td><span class="b ${st(i)}">${lbl[st(i)]}</span></td><td><button class="sm" data-act="sell" ${k}>Sell</button> <button class="sm alt" data-act="adj" ${k}>Adjust</button> <button class="sm alt" data-act="xfer" ${k}>Transfer</button> <button class="sm alt" data-act="edit" ${k}>Edit</button> <button class="sm dg" data-act="del" ${k}>Delete</button></td></tr>`}).join('')||'<tr><td colspan="9" class="mut">No items match. Add one or clear the filters.</td></tr>'}</tbody></table></div>`}
+function inv(){return`<div class="card"><div class="bar"><input type="search" id="q" placeholder="Search name, SKU, barcode, category" value="${esc(q)}" aria-label="Search"><select id="fs" aria-label="Status filter">${[['all','All statuses'],['ok','In stock'],['low','Low stock'],['out','Out of stock']].map(o=>`<option value="${o[0]}" ${o[0]===fs?'selected':''}>${o[1]}</option>`).join('')}</select><button data-act="new">Add item</button></div><div id="tbl">${tbl()}</div></div>`}
+function pos(){return`<div class="card"><div class="bar"><h2 style="margin:0;flex:1">Purchase orders</h2><button data-act="newpo">New purchase order</button></div><div class="tw"><table><thead><tr><th>PO</th><th>Supplier</th><th>Deliver to</th><th>Lines</th><th>Date</th><th class="n">Total incl. GST</th><th>Status</th><th>Actions</th></tr></thead><tbody>${S.pos.map(p=>{const k=`data-id="${p.id}"`;return`<tr><td class="sku">${p.id}</td><td>${esc(supn(p.sup))}</td><td>${esc(p.loc)}</td><td>${p.lines.map(l=>esc(l.sku)+' x '+l.qty).join(', ')}</td><td>${p.date}</td><td class="n">${money(poAmt(p).b+poAmt(p).g)}<br><span class="mut">GST ${money(poAmt(p).g)} (${taxType(p)})</span></td><td><span class="b ${p.status==='received'?'ok':p.status==='cancelled'?'x':'low'}">${p.status}</span></td><td>${p.status==='draft'?`<button class="sm" data-act="po" data-s="ordered" ${k}>Mark ordered</button> `:''}${['draft','ordered'].includes(p.status)?`<button class="sm" data-act="po" data-s="received" ${k}>Receive</button> <button class="sm dg" data-act="po" data-s="cancelled" ${k}>Cancel</button>`:''}</td></tr>`}).join('')||'<tr><td colspan="8" class="mut">No purchase orders yet. Use Reorder on a low-stock alert or create one.</td></tr>'}</tbody></table></div></div>`}
+function sup(){return`<div class="card"><div class="bar"><h2 style="margin:0;flex:1">Suppliers</h2><button data-act="newsup">New supplier</button></div><div class="tw"><table><thead><tr><th>Name</th><th>GSTIN</th><th>Email</th><th class="n">Lead time</th><th class="n">SKUs</th><th class="n">Open POs</th></tr></thead><tbody>${S.sup.map(s=>`<tr><td>${esc(s.name)}</td><td class="sku">${esc(s.gstin)}</td><td>${esc(s.email)}</td><td class="n">${s.lead} days</td><td class="n">${S.items.filter(i=>i.sup===s.id).length}</td><td class="n">${S.pos.filter(p=>p.sup===s.id&&['draft','ordered'].includes(p.status)).length}</td></tr>`).join('')}</tbody></table></div></div>`}
+function setg(){return`<div class="two"><div class="card"><h2>Locations</h2>${S.locs.map(l=>`<div class="al">${esc(l)} <span class="mut">state code ${esc(S.locSt[l]||'-')}</span></div>`).join('')}<p><button data-act="addloc">Add location</button></p></div>
+<div class="card"><h2>Sales channels</h2>${S.channels.map(l=>`<div class="al">${esc(l)}</div>`).join('')}<p><button data-act="addch">Add channel</button></p></div>
+<div class="card"><h2>Import channel sales</h2><p class="mut">Upload a CSV with columns sku, qty, channel and optionally location. Each row reduces stock automatically.</p><input type="file" id="imp" accept=".csv"></div>
+<div class="card"><h2>Data</h2><p class="mut">Data is saved in this browser. Changes made in another tab appear here automatically.</p><p class="mut">HSN codes and GST rates are sample values. Check the current GST rate for each product before invoicing.</p><button data-act="export">Export inventory CSV</button> <button class="dg" data-act="reset">Reset demo data</button></div></div>`}
+function render(){$('#tabs').innerHTML=tabs.map((t,i)=>`<button class="tab ${i==tab?'on':''}" data-act="tab" data-i="${i}">${t}</button>`).join('');
+ const v=$('#sloc').value;$('#sloc').innerHTML=S.locs.map(l=>`<option ${l===v?'selected':''}>${esc(l)}</option>`).join('');$('#main').innerHTML=[dash,inv,pos,sup,setg][tab]()}
+document.addEventListener('click',e=>{const a=e.target.closest('[data-act]');if(a)A[a.dataset.act](a.dataset)});
+document.addEventListener('input',e=>{if(e.target.id==='q'){q=e.target.value;$('#tbl').innerHTML=tbl()}});
+document.addEventListener('change',e=>{if(e.target.id==='fs'){fs=e.target.value;$('#tbl').innerHTML=tbl()}
+ if(e.target.id==='imp'){const f=e.target.files[0];if(!f)return;f.text().then(t=>{let ok=0,bad=0;t.split(/\r?\n/).map(r=>r.split(',').map(x=>x.trim())).forEach(r=>{const i=item(r[0]),n=+r[1];if(!i||!(n>0)){if(r[0]&&isNaN(n)===false||i)bad++;return}
+  const l=r[3]||S.locs.find(x=>(i.qty[x]||0)>=n)||S.locs[0];if((i.qty[l]||0)>=n){i.qty[l]-=n;log(`${i.name} -${n} at ${l} - sold via ${r[2]||'import'}`);ok++}else bad++});save();toast(`${ok} sales applied, ${bad} skipped`,bad>0)})}});
+$('#scan').addEventListener('keydown',e=>{if(e.key!=='Enter')return;const v=e.target.value.trim();e.target.value='';if(!v)return;const i=S.items.find(x=>x.barcode===v||x.sku.toLowerCase()===v.toLowerCase());if(!i)return toast('No item matches '+v,1);
+ const m=$('#smode').value,l=$('#sloc').value;if(m==='find'){tab=1;q=i.sku;render()}else if(m==='sell')sell(i.sku,l,1,'scan');else adjust(i.sku,l,1,'scan receive')});
+load();render();
+    </script>
+</body>
+
+</html>
